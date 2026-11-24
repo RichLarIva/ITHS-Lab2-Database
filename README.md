@@ -115,5 +115,5 @@ Kopplingarna i Java är implementerade enkelriktat från `Employee` utåt, vilke
 ### Hur programmet startas
 
 1. Klona repot och öppna mappen `ITHS-Lab2-Database` i IntelliJ IDEA (eller annan Java-IDE).
-2. Navigera till klassen `Main` i paketet `lab2` (`lab2`).
+2. Navigera till klassen `Main` i paketet `tech.larssonivarsson.richard.lab2` (`src/main/java/tech/larssonivarsson/richard/lab2/Main.java`).
 3. Kör `main`-metoden direkt i IDE:n (eller via terminalen med `./mvnw compile exec:java` / `javac` och `java` beroende på projektets byggverktyg).
