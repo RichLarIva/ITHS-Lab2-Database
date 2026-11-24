@@ -19,3 +19,23 @@ INSERT IGNORE INTO lab2_db.employee(employee_id, first_name, last_name, email, h
 INSERT IGNORE INTO lab2_db.access_card(employee_id, card_number, issue_date, expiry_date) VALUES
 (1, 'WOIT-1051', '2026-05-13', '2028-12-31'),
 (4, 'WOIT-1023', '2025-02-01', '2027-12-31');
+
+
+# VG KRAV
+
+#4. Kompetenser (Projektledning kopplas inte till någon anställd)
+INSERT IGNORE INTO lab2_db.competency(competency_id, name, description) VALUES
+(1, 'Java', 'Objektorienterad programmering och applikationsutveckling i Java.'),
+(2, 'SQL', 'Relationsdatabaser, datamodellering och SQL-frågor.'),
+(3, 'Projektledning', 'Planering och ledning av agila utvecklingsprojekt.');
+
+# 5. Koppla kompetenser till anställda
+# Richard (1): Java och SQL (Flera kompetenser)
+# Erik (2): Java (En delad kompetens med Richard, saknar också passerkort)
+# Per Johan (3): Inga kompetenser då han är helt ny
+# Maria (4): SQL (Delas med richard)
+INSERT IGNORE INTO lab2_db.employee_competency (employee_id, competency_id) VALUES
+(1, 1),
+(1, 2),
+(2, 1),
+(4, 2);

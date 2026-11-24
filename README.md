@@ -8,6 +8,12 @@ Utifrån labbens beskrivning så finns det 3 olika objekt (Entiteter) för att f
 * **Anställd (`employee`)** - företagets personal
 * **Passerkort (`access_card`)** - de passerkort som delas ut till vissa anställda.
 
+#### VG Entiteter
+
+* **Kompetens(`competency`)** - de kompetenser som företaget registrerar (Till exempel Java, SQL, med mera).
+* **Anställd-Kompetens(`employee_competency`)** - kopplingstabell som hanterar en många-till-många-relation mellan anställda och kompetenser, i.e. en anställd ska kunna ha flera kompetenser och en kompetens kan ha flera anställda kopplade till sig. 
+
+
 ---
 
 ### 2. Attribut
@@ -36,6 +42,17 @@ respektive entitet:
     * `issue_date` (`DATE`, `NOT NULL`) – utfärdandedatum (obligatoriskt).
     * `expiry_date` (`DATE`, `NOT NULL`) – sista giltighetsdatum (obligatoriskt).
 
+####  VG Attribut
+
+* **Kompetens (`competency`)**
+  * `competency_id` (`INT`, `PRIMARY KEY`, `AUTO_INCREMENT`) - En unik primärnyckel för kompetensen.
+  * `name` (`VARCHAR(100)`, `NOT NULL`, `UNIQUE`) - kompetensens namn (Obligatoriskt och unikt).
+  * `description` (`VARCHAR(255)`, `NOT NULL`) - beskrivning av kompetensen (Obligatoriskt).
+
+* **Anställd-Kompetens (`employee_competency`)**
+  * `employee_id` (`INT`, `PRIMARY KEY`, `FOREIGN KEY`) - referens till `employee(employee_id)`.
+  * `competency_id` (`INT`, `PRIMARY KEY`, `FOREIGN KEY`) - referens till `competency(competency_id)`.
+
 ---
 
 ### 3. Relationer, kardinalitet och motiveringar
@@ -55,6 +72,11 @@ respektive entitet:
       varje passerkort hör till en giltig anställd och förhindrar att samma anställd tilldelas flera passerkort,
       samtidigt som en anställd kan sakna rad i `access_card`.
 
+
+#### VG Relation et cetera
+- **Anställd – Kompetens (`0..*` till `0..*` / Många-till-många – VG):**
+  - **Beskrivning:** En anställd kan ha noll eller flera kompetenser och samma kompetens kan finnas hos noll eller flera anställda. En kompetens kan även registreras innan någon anställd har den.
+  - **Motivering:** En många-till-många-relation löses i en relationsdatabas med kopplingstabellen `employee_competency`. Genom att använda en sammansatt primärnyckel (`PRIMARY KEY (employee_id, competency_id)`) säkerställs att samma kompetens inte kan kopplas till samma anställd flera gånger.
 ---
 
 #### Motivering för Email i anställd
@@ -90,6 +112,86 @@ FROM department AS d
 
 **Förklaring:** Här utgår frågan från tabellen `department` med en `LEFT JOIN` mot `employee`. Detta gör att alla avdelningar visas i resultatet, även de som saknar anställda. Avdelningen *HR* visas `NULL` i kolumnen för den anställdes fulla namn.
 
+### VG1. Anställda med avdelning och passerkort
+```mysql
+SELECT CONCAT(e.first_name, ' ', e.last_name) AS full_name,
+       d.office_name,
+       ac.card_number
+FROM employee AS e
+    INNER JOIN department AS d on e.department_id = d.department_id
+    LEFT JOIN access_card ac on e.employee_id = ac.employee_id;
+```
+![Resultat för VG1](images/query_vg1.png)
+
+**Förklaring:** Frågan hämtar alla anställda och deras avdelning med `INNER JOIN`, och använder `LEFT JOIN` mot `access_card`. Det gör att samtliga anställda finns med i resultatet och för Erik och Per Johan som saknar passerkort visas `NULL` i kolumnen `card_number`.
+
+### VG2. Avdelningar med anställda och passerkort
+```mysql
+SELECT d.office_name,
+       CONCAT(e.first_name, ' ', e.last_name) AS full_name,
+       ac.card_number
+FROM department AS d
+         LEFT JOIN employee AS e on e.department_id = d.department_id
+         LEFT JOIN access_card ac on e.employee_id = ac.employee_id;
+```
+![Resultat för VG2](images/query_vg2.png)
+
+**Förklaring:** Genom att utgå från `department` och kedja två `LEFT JOIN` behålls både den tomma avdelningen *HR* (med `NULL` för både anställd och kortnummer) och anställda som saknar passerkort (Erik och Per Johan).
+
+### VG3. En anställds samlade uppgifter & kontroll av valfria kopplingar
+```mysql
+SELECT
+    e.employee_id,
+    CONCAT(e.first_name, ' ',e.last_name)
+                  AS full_name,
+    e.email,
+    e.hire_date,
+    d.office_name,
+    d.office_city,
+    ac.card_number,
+    ac.issue_date,
+    ac.expiry_date,
+    c.name AS competency_name,
+    c.description AS competency_description
+FROM employee AS e
+         LEFT JOIN department AS d ON e.department_id = d.department_id
+         LEFT JOIN access_card AS ac ON e.employee_id = ac.employee_id
+         LEFT JOIN employee_competency AS ec ON e.employee_id = ec.employee_id
+         LEFT JOIN competency AS c ON ec.competency_id = c.competency_id
+WHERE e.employee_id = 1;
+```
+![Resultat för VG3 Richard](images/query_vg3.png)
+![Resultat för VG3 Erik och Per Johan](images/query_vg3_optional.png)
+
+**Förklaring:**
+- **Varför Richard (`employee_id = 1`) ger flera rader:** Richard har två registrerade kompetenser (`Java` och `SQL`). Eftersom relationen från `employee` till `employee_competency` är en-till-många returnerar SQL en rad per matchande kompetens, vilket gör att uppgifterna om Richard, hans avdelning och hans passerkort upprepas på två rader.
+- **Kontroll av Erik (`employee_id = 2`, utan passerkort) och Per Johan (`employee_id = 3`, utan passerkort och kompetenser):** Eftersom `LEFT JOIN` används bevaras raden från vänstertabellen `employee` även när det saknas matchning i `access_card` eller i `employee_competency`/`competency`. De saknade kolumnerna fylls då med `NULL` i stället för att den anställde filtreras bort.
+
+### VG4. Jämförelse mellan `INNER JOIN` och `LEFT JOIN`
+```mysql
+# 1. INNER JOIN
+SELECT d.office_name, e.first_name, e.last_name
+FROM department AS d
+         INNER JOIN employee AS e ON d.department_id = e.department_id;
+
+# 2. LEFT JOIN
+SELECT d.office_name, e.first_name, e.last_name
+FROM department AS d
+         LEFT JOIN employee AS e ON d.department_id = e.department_id;
+```
+![Resultat för VG4](images/query_vg4.png)
+
+**Förklaring:**
+- **Vilken avdelning försvinner med `INNER JOIN`?** Avdelningen *HR* försvinner eftersom den inte har några matchande rader i tabellen `employee`.
+- **Varför finns den kvar med `LEFT JOIN`?** `LEFT JOIN` returnerar samtliga rader från den vänstra tabellen (`department`) oavsett om det finns någon matchande rad i den högra tabellen (`employee`).
+- **Vad visas i kolumnerna för den anställde på den raden?** Värdet `NULL` visas i både `first_name` och `last_name`.
+
+
+Ett bra sätt att visualisera detta är med detta venn diagram
+![venn diagram som visar SQL join](images/sqljoin-visual.png)
+
+---
+
 ## Java-applikation
 
 ### Motsvarighet till datamodellen
@@ -99,14 +201,17 @@ Databasens tabeller motsvaras av tre modellklasser i paketet `lab2`:
 * **`Department`** motsvarar tabellen `department` med fälten `departmentId`, `officeName` och `officeCity`.
 * **`Employee`** motsvarar tabellen `employee` med fälten `employeeId`, `firstName`, `lastName`, `email`, `hireDate` samt referenser till avdelning och eventuellt passerkort.
 * **`AccessCard`** motsvarar tabellen `access_card` med fälten `cardNumber`, `issueDate` och `expiryDate`.
+* **`Competency`** motsvarar tabellen `competency` med fälten `competencyId`, `name` och `description`.
+
 
 ### Representation av relationer och valfria värden
 
-Kopplingarna i Java är implementerade enkelriktat från `Employee` utåt, vilket innebär att varken `Department` eller `AccessCard` håller någon referens tillbaka till `Employee`:
+Kopplingarna i Java är implementerade enkelriktat från `Employee` utåt, vilket innebär att varken `Department`, `AccessCard` eller `Competency` håller någon referens tillbaka till `Employee`:
 
-* **Anställd – Avdelning (`1`):** `Employee` har ett obligatoriskt fält `private final Department department` som valideras med `Objects.requireNonNull(...)` i konstruktorn, vilket speglar `department_id NOT NULL` i databasen.
-* **Anställd – Passerkort (`0..1`):** `Employee` har ett valfritt fält `private AccessCard accessCard` som sätts via `setAccessCard(...)`. Gettern `getAccessCard()` returnerar `Optional<AccessCard>` för att tydligt hantera att en anställd kan sakna passerkort utan risk för `NullPointerException`.
-* **Valfri e-postadress:** Eftersom `email` i databasen tillåter `NULL` så kan den i databasen returnera null där av det så returnerar även `getEmail()` en `Optional<String>`.
+- **Anställd – Avdelning (`1`):** `Employee` har ett obligatoriskt fält `private final Department department` som valideras med `Objects.requireNonNull(...)` i konstruktorn, vilket speglar `department_id NOT NULL` i databasen.
+- **Anställd – Passerkort (`0..1`):** `Employee` har ett valfritt fält `private AccessCard accessCard` som sätts via `setAccessCard(...)`. Gettern `getAccessCard()` returnerar `Optional<AccessCard>` för att tydligt hantera att en anställd kan sakna passerkort utan risk för `NullPointerException`.
+- **Valfri e-postadress:** Eftersom `email` i databasen tillåter `NULL` så kan den i databasen returnera null; därav returnerar även `getEmail()` en `Optional<String>`.
+- **Anställd – Kompetens (`0..*` – VG5):** `Employee` lagrar sina kompetenser i ett `Set<Competency>` (`LinkedHashSet`). Genom att implementera `equals` och `hashCode` i `Competency` förhindras dubbletter av samma kompetens hos en anställd, vilket motsvarar den sammansatta primärnyckeln i `employee_competency`. Varje `Competency`-instans (t.ex. `java` och `sql`) skapas en gång i `Main` och delas mellan flera `Employee`-objekt utan att dupliceras, och kompetensen `projektledning` skapas som ett fristående objekt utan att kopplas till någon anställd.
 
 ### Utskrift från programmet
 

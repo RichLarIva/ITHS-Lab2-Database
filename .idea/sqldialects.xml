@@ -5,5 +5,7 @@
     <file url="file://$PROJECT_DIR$/sql codesnippets/Creation of Tables.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/sql codesnippets/Insertions of Test data.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/sql codesnippets/Join Queries.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/sql codesnippets/VG Creation of tables.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/sql codesnippets/VG Join Queries.sql" dialect="MySQL" />
   </component>
 </project>

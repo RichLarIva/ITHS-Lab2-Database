@@ -1,8 +1,7 @@
 package tech.larssonivarsson.richard.lab2.model;
 
 import java.time.LocalDate;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 public class Employee {
     private final int employeeId;
@@ -12,6 +11,7 @@ public class Employee {
     private final LocalDate hireDate;
     private final Department department; // Obligatory (1)
     private AccessCard accessCard; // Optional (0..1)
+    private final Set<Competency> competencies = new LinkedHashSet<>();
 
     public Employee(int employeeId, String firstName, String lastName, String email, LocalDate hireDate, Department department) {
         this.employeeId = employeeId;
@@ -56,5 +56,13 @@ public class Employee {
 
     public void setAccessCard(AccessCard accessCard) {
         this.accessCard = accessCard;
+    }
+
+    public void addCompetency(Competency competency) {
+        competencies.add(Objects.requireNonNull(competency, "competency cannot be null"));
+    }
+
+    public Set<Competency> getCompetencies() {
+        return Collections.unmodifiableSet(competencies);
     }
 }
