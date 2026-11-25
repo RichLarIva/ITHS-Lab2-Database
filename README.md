@@ -1,4 +1,5 @@
 # Laboration 2: Databas Kursen
+### Richards inlämning av laboration 2 (del 1)
 
 ### 1. Entiteter
 
